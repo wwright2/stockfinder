@@ -1,0 +1,263 @@
+<WBIGuid("eabbf887-f08c-4603-8800-67fed2c8f330"),FriendlyName("RealCodeIndicator"),BlockTemplateEmptyMethodOnly()> _
+Public Partial Class RealCodeIndicator 
+	Inherits RealCodeIndicator_base
+	
+	Enum waveState As Integer
+		wavestart = -1
+		wave1 = 0
+		wave2 = 1
+		wave3 = 2
+		wave4 = 3
+		wave5 = 4
+		wavea = 5
+		waveb = 6
+		wavec = 7
+		waveend = 8
+	End Enum
+	
+
+	Public Overrides Function Plot() As System.Single
+		'|******************************************************************
+		'|*** StockFinder RealCode Indicator - Version 5.0 www.worden.com 
+		'|*** Copy and paste this header and code into StockFinder *********
+		'|*** Indicator:My Indicator
+		'|*** Example: plot = price.close - price.close(1)
+		'|******************************************************************
+		
+		'waveValue userinput as single
+		'# Cumulative 
+		
+		
+		Static  waves 					As waveState
+		Static  wave(waveState.waveend) As Single  ' Store the close here for current wave.
+		Static  newValueFlag 			As Boolean
+		
+		Static flag1 			As Boolean
+		Static wave1LowClose 	As Single
+		
+		
+		Static  plotv 			As Single
+		
+		If isfirstbar Then 
+			flag1 = False
+			waves = waveState.wavestart
+			plotv = 0
+		Else 
+			
+			newValueFlag = False
+			Select Case waves
+				Case waveState.wavestart
+					
+					Wave2Exception:
+					If price.Close < price.MinClose(20, 1) Then
+						Log.Debug(price.DateValue & " Start s-1, " & price.close & ", " & price.MinClose(20, 1))
+						flag1 = True
+						wave1LowClose = price.close
+					End If
+		
+					If  flag1 = True AndAlso price.close(0) > price.maxclose(12, 1) Then
+						Log.Info(price.DateValue & " Start s-2")
+						wave(waveState.wave1) = price.Close				' Set Wave-1
+						plotv = 1
+						newValueFlag = True
+						flag1 = False
+						waves = waveState.wave1
+					End If
+		
+				Case waveState.wave1
+					If  price.Close < price.minclose(7, 1) Then 
+						Log.Info(price.DateValue & " wave1-2, ")
+						flag1 = False
+						wave(waveState.wave2) = price.Close 			' Set Wave-2
+						plotv = 2
+						newValueFlag = True
+		
+						label(1) = "w1"
+						waves = waveState.wave2
+						
+					Else If price.Close > wave(waveState.wave1) Then  	' Failure to Satisfy wave 1
+						Log.Info(price.DateValue & " wave1-3, " & ", " & price.close)
+						wave(waveState.wave1) = price.Close  			' Shift wave 1
+						plotv = 1
+						newValueFlag = True
+					End If
+				
+						
+			
+				Case waveState.wave2
+					flag1 = False
+					wave4Exception:
+					If price.close > wave(waveState.wave1) AndAlso price.close > price.maxclose(20, 1) Then
+						Log.Info(price.DateValue & " wave 2-1, " & ", " & price.Close)
+						wave(waveState.wave3) = price.Close
+						plotv = 3
+						newValueFlag = True
+						waves = waveState.wave3
+						label(1) = "w2"
+						
+					Else If price.Close < wave1LowClose Then
+						' Reset.  Up-trend fails.
+						label = "up_fail"
+						plotv = 0
+						flag1 = True
+						waves = waveState.wavestart
+						Log.Info(price.DateValue & " wave 2 goto, " & ", " & price.Close)
+						GoTo Wave2Exception
+					
+					Else If price.Close < wave(waveState.wave2) Then
+						Log.Info(price.DateValue & " wave 2 update, " & ", " & price.Close)
+						wave(waveState.wave2) = price.Close 			' Set Wave-2
+						plotv = 2
+						newValueFlag = True
+					End If
+		
+				Case waveState.wave3
+					If price.Close < price.minclose(12, 1) Then
+						Log.Info(price.DateValue & " wave 3-1, " & ", " & wave(waveState.wave3) & ", " & price.close)
+						wave(waveState.wave4) = price.Close
+						plotv = 4
+						newValueFlag = True
+		
+						label = ""
+						label(1) = "w3"
+						
+						waves = waveState.wave4
+		
+					Else If price.Close > wave(waveState.wave3) Then  	' Failure to Satisfy wave-3
+						Log.Info(price.DateValue & " waves = wave3-2, " & ", " & price.close)
+						wave(waveState.wave3) = price.Close  			' Shift wave-3
+						plotv = 3
+						newValueFlag = True
+					End If
+		
+				Case waveState.wave4
+					If price.close > price.MaxClose(33, 1) Then
+						Log.Info(price.DateValue & " wave 4-1, " & ", " & price.close)
+						wave(waveState.wave5) = price.Close
+						plotv = 5
+						newValueFlag = True
+						label = ""
+						label(1) = "w4"
+						waves = waveState.wave5
+		
+					Else If price.Close < wave(waveState.wave4) Then
+						Log.Info(price.DateValue & " wave 4-2, " & ", " & price.close)
+						wave(waveState.wave4) = price.Close 			' Set Wave-4
+						plotv = 4
+						newValueFlag = True
+						label = ""
+					Else If price.Close < wave(waveState.wave2) Then
+						' Shift W2.
+						Log.Info(price.DateValue & " wave 4-3 shift, " & ", " & price.Close)
+						label = "s2"
+						flag1 = True
+						plotv = 2
+						waves = waveState.wave2
+						GoTo Wave4Exception
+					End If
+				
+		
+				Case waveState.wave5
+					If price.Close < price.MinClose(12, 1) Then
+						Log.Info(price.DateValue & " wave5-1, ")
+						wave(waveState.wavea) = price.Close				' Set Wave-a
+						plotv = 6
+						newValueFlag = True
+						label(1) = "w5"
+						waves = waveState.wavea
+						
+					Else If price.Close > wave(waveState.wave5) Then  	' Failure to Satisfy wave-3
+						Log.Info(price.DateValue & " wave5-2, " & ", " & price.close)
+						wave(waveState.wave5) = price.Close  			' Shift wave-5
+						plotv = 5
+						newValueFlag = True
+		
+					End If
+				
+		
+				Case waveState.wavea
+					If price.Close > price.maxclose(7, 1) Then
+						Log.Info(price.DateValue & " wave a-1, " & ", " & price.close)
+						wave(waveState.waveb) = price.Close				' Set Wave-b
+						plotv = 7
+						label(1) = "wa"
+						newValueFlag = True
+						waves = waveState.waveb
+		
+					Else If price.Close < wave(waveState.wavea) Then
+						wave(waveState.wavea) = price.close
+						newValueFlag = True
+					End If
+				
+		
+				Case waveState.waveb
+					If price.Close < price.minclose(20, 1) Then
+						Log.Info(price.DateValue & " wave b-1, " & ", " & price.close)
+						wave(waveState.wavec) = price.Close				' Set Wave-c
+						plotv = 8
+						newValueFlag = True
+		
+						label(1) = "wb"
+						waves = waveState.wavec
+		
+					Else If price.Close > wave(waveState.wave5) Then
+						Log.Info(price.DateValue & " wave b-2, " _
+							& ", " & price.close)
+						' wave-b price closing above wave-5 erase wave-a,wave-b and shift wave-5
+						label(2) = "s4"
+						wave(waveState.wave4) = wave(waveState.wavea)
+						waves = waveState.wave5
+						wave(waveState.wavea) = 0					' Set Wave-a
+						wave(waveState.waveb) = 0					' Set Wave-b
+						plotv = 4
+						newValueFlag = True				
+						
+					Else If price.Close > wave(waveState.waveb) Then
+						wave(waveState.waveb) = price.Close  			' Shift wave-b
+						plotv = 7
+						newValueFlag = True
+						
+					End If 
+				
+				Case waveState.wavec
+		
+					If price.close < wave(waveState.wavec) Then
+						Log.Info(price.DateValue & " wave c, " & ", " & price.close)
+						wave(waveState.wavec) = price.close
+						plotv = 8
+					End If
+		
+					If wave(waveState.wavec) < wave(waveState.wavea) Then
+						' Lock wave-5
+						Log.Info(price.DateValue & " wave c , lock wave-5")
+						waves = waveState.wavestart
+						plotv = 0
+						label(1) = "wc"
+						flag1 = True
+						newValueFlag = True				
+					End If
+					
+					If price.Close < wave(waveState.wavea) Then
+						waves = waveState.wavestart
+						plotv = 0
+						flag1 = True
+					End If
+						
+				
+				Case Else
+					Log.Info(price.DateValue & " NO state hit")
+			End Select
+		
+			'	plot = plotv ' price.close		
+		
+			If (newValueFlag = True) Then
+				plot = plotv ' price.close		
+				'plot = price.close		
+			Else
+				plot = Single.NaN
+			End If
+			
+		End If
+
+end function
+End Class
