@@ -1,0 +1,330 @@
+<WBIGuid("3b6b8e77-cbd1-4ca5-bfd4-5672750d6203"),FriendlyName("RealCodeIndicator"),BlockTemplateEmptyMethodOnly()> _
+Public Partial Class RealCodeIndicator 
+		Inherits RealCodeIndicator_base
+ 
+		Public Overrides Function Plot() As System.Single
+			' Original: http://forums.worden.com/default.aspx?g=posts&t=42846
+			'# Period = UserInput.Single = 14
+			'# Factor = UserInput.Single = 3
+			'# Delta = UserInput.Single = 3
+			Static ZZ As MyZigZag
+			Static XABCD As XABCD
+					If isFirstBar Then
+			ZZ = New MyZigZag(Price, Period, Factor)
+			XABCD = New XABCD(Delta)
+			Plot = Single.NaN
+					Else
+			ZZ.PrePlot(Price)
+				If ZZ.IsExtreme(Price) Then
+					XABCD.AddExtreme(ZZ.GetExtremePrice())
+					AddToOutput(ZZ.GetExtremeDate(), ZZ.GetExtremePrice(), ZZ.GetExtremePrice())
+				End If
+				ZZ.PostPlot(Price, Factor)
+			End If
+			If isLastBar Then
+			XABCD.AddExtreme(ZZ.GetExtremePrice())
+			AddToOutput(ZZ.GetExtremeDate(), ZZ.GetExtremePrice, XABCD.Display())
+			AddToOutput(ZZ.GetExtremeDate(), ZZ.GetExtremePrice, XABCD.GetCode())
+			End If
+			Plot = Single.NaN
+			 
+			
+			
+
+end function
+	End Class
+ 
+Class XABCD
+	Private _X,_A, _B, _C, _D As Single
+	Private _Output As String
+	Private _Delta As Single
+	Private code As XabcdCode
+	
+	Public Function GetCode() As Single
+		Return code
+	End Function
+
+		Public Sub New(Delta As Single)
+			_Delta = Delta
+			_A = Single.NaN
+			_B = Single.NaN
+			_C = Single.NaN
+			_D = Single.NaN
+			_Output = ""
+		End Sub
+		Public Sub AddExtreme(Value As Single)
+			_X = _A
+			_A = _B
+			_B = _C
+			_C = _D
+			_D = Value
+		End Sub
+		Private Function _ABCDTarget() As Single
+			'BC=0.382AB
+			If _BC() >= 0.382 * (1 - _delta / 100) * _AB() And _BC() <= 0.382 * (1 + _delta / 100) * _AB() Then
+				Return _C - 2.24 * _BC()
+			End If
+			'BC=0.5AB
+			If _BC() >= 0.5 * (1 - _delta / 100) * _AB() And _BC() <= 0.5 * (1 + _delta / 100) * _AB() Then
+				Return _C - 2 * _BC()
+			End If
+			'BC=0.618AB
+			If _BC() >= 0.618 * (1 - _delta / 100) * _AB() And _BC() <= 0.618 * (1 + _delta / 100) * _AB() Then
+				Return _C - 1.618 * _BC()
+			End If
+			'BC=0.707AB
+			If _BC() >= 0.707 * (1 - _delta / 100) * _AB() And _BC() <= 0.707 * (1 + _delta / 100) * _AB() Then
+				Return _C - 1.41 * _BC()
+			End If
+			'BC=0.786AB
+			If _BC() >= 0.786 * (1 - _delta / 100) * _AB() And _BC() <= 0.786 * (1 + _delta / 100) * _AB() Then
+				Return _C - 1.27 * _BC()
+			End If
+			'BC=0.886AB
+			If _BC() >= 0.886 * (1 - _delta / 100) * _AB() And _BC() <= 0.886 * (1 + _delta / 100) * _AB() Then
+				Return _C - 1.13 * _BC()
+			End If
+ 
+			return single.NaN
+		End Function
+		Private Function _BatTarget() As Single
+			'AB<0.618XA
+			If _AB() > 0.618 * (1 + _delta / 100) * _XA() Then Return Single.NaN
+			'BC is 0.382AB~0.886AB
+			If _BC() < 0.382 * (1 - _delta / 100) * _AB() Then Return Single.NaN
+			If _BC() > 0.886 * (1 + _delta / 100) * _AB() Then Return Single.NaN
+			Return _A - 0.886 * _XA()
+		End Function
+		Private Function _GartleyTarget() As Single
+			'AB=0.618XA
+			If _AB() > 0.618 * (1 + _delta / 100) * _XA() Then Return Single.NaN
+			If _AB() < 0.618 * (1 - _delta / 100) * _XA() Then Return Single.NaN
+			'BC is 0.382AB~0.886AB
+			If _BC() < 0.382 * (1 - _delta / 100) * _AB() Then Return Single.NaN
+			If _BC() > 0.886 * (1 + _delta / 100) * _AB() Then Return Single.NaN
+			Return _A - 0.786 * _XA()
+		End Function
+		Private Function _CrabTarget() As Single
+			'AB=0.382~0.618XA
+			If _AB() > 0.618 * (1 + _delta / 100) * _XA() Then Return Single.NaN
+			If _AB() < 0.382 * (1 - _delta / 100) * _XA() Then Return Single.NaN
+			'BC is 0.382AB~0.886AB
+			If _BC() < 0.382 * (1 - _delta / 100) * _AB() Then Return Single.NaN
+			If _BC() > 0.886 * (1 + _delta / 100) * _AB() Then Return Single.NaN
+			Return _A - 1.618 * _XA()
+		End Function
+		Private Function _ButterflyTarget() As Single
+			'AB=0.786
+			If _AB() > 0.786 * (1 + _delta / 100) * _XA() Then Return Single.NaN
+			If _AB() < 0.786 * (1 - _delta / 100) * _XA() Then Return Single.NaN
+			'BC is 0.382AB~0.886AB
+			If _BC() < 0.382 * (1 - _delta / 100) * _AB() Then Return Single.NaN
+			If _BC() > 0.886 * (1 + _delta / 100) * _AB() Then Return Single.NaN
+			Return _A - 1.27 * _XA()
+		End Function
+		Private Function _XA() As Single
+			Return _A - _X
+		End Function
+		Private Function _AB() As Single
+			Return _A - _B
+		End Function
+		Private Function _BC() As Single
+			Return _C - _B
+		End Function
+		Private Function _CD() As Single
+			Return _C - _D
+		End Function
+ 
+		Private Sub _AddToOutput(Str As String)
+			_Output = _Output & Str & System.Environment.NewLine
+		End Sub
+	Private Function CheckBat(ByRef code As XabcdCode) As String
+		Dim Target As Single
+		Target = _BatTarget()
+		If Not system.Single.isnan(target) Then 
+			code = (code Or XABCDCode.Bat)
+			Return "BAT Target=" & Target 
+		Else
+			Return ""
+		End If
+	End Function
+	Private Function CheckGartley(ByRef code As XabcdCode) As String
+		Dim Target As Single
+		Target = _GartleyTarget()
+		If Not system.Single.isnan(target) Then	
+			code = (code Or XABCDCode.Gartley)
+			Return "Gartley Target=" & Target
+		Else
+			Return ""
+		End If
+		
+	End Function
+ 
+	Private Function CheckCrab(ByRef code As XabcdCode) As String
+		Dim Target As Single
+		Target = _CrabTarget()
+		If Not system.Single.isnan(target) Then	
+			code = (code Or XABCDCode.Crab)
+			Return "Crab Target=" & Target
+		Else
+			Return ""
+		End If
+		
+		End Function
+	Private Function CheckButterfly(ByRef code As XabcdCode) As String
+		Dim Target As Single
+		Target = _ButterflyTarget()
+		If Not system.Single.isnan(target) Then 
+			code = (code Or XABCDCode.Butterfly)
+			Return "Butterfly Target=" & Target
+		Else
+			Return ""
+		End If
+		
+		End Function
+	Private Function CheckABCD(ByRef code As XabcdCode) As String
+		Dim Target As Single
+		Target = _ABCDTarget()
+		If Not system.Single.isnan(target) Then 
+			code = (code Or XABCDCode.ABCD)
+			Return "ABCD Target=" & target
+		Else
+			Return ""
+		End If
+		End Function
+	Public Function Display() As String
+		code = XabcdCode.none
+		_AddToOutput(CheckABCD(code))
+		_AddToOutput(CheckBat(code))
+		_AddToOutput(CheckGartley(code))
+		_AddToOutput(CheckCrab(code))
+		_AddToOutput(CheckButterfly(code))
+		Return _Output
+		End Function
+	End Class
+ 
+Class MyZigZaG
+	Private _TR As Single
+	Private _TermRatio As Single
+	Private _ATR As Single
+	Private _SumWeight As Single
+	Private _Weight As Single
+	Private _ExtDate As Date
+	Private _Extreme As Single
+	Private _Tstop As Single
+	Private _State As ZZState
+	
+	Public Sub New(Price As Object, Period As Single, Factor As Single)
+		_TR = Price.High - Price.Low
+		_TermRatio = (Period - 1) / Period
+		_ATR = _TR
+		_SumWeight = _TermRatio + 1
+		_Weight = 1 / _SumWeight
+		_ExtDate = Price.DateValue
+		If _StartsFromExtremeLow(Price) Then
+			_Extreme = Price.Low
+			_Tstop = System.Math.Max(Price.High, _Extreme + Factor * _ATR)
+			_State = ZZState.Down
+		Else
+			_Extreme = Price.High
+			_Tstop = System.Math.Min(Price.Low, _Extreme - Factor * _ATR)
+			_State = ZZState.Up
+		End If
+	End Sub
+	Private Function _StartsFromExtremeLow(Price As Object) As Boolean
+		Return Price.High(-1) - System.Math.Min(Price.Low, Price.Low(-1)) < _
+			System.Math.Max(Price.High, Price.High(-1)) - Price.Low(-1)
+	End Function
+	Public Function GetExtremeDate() As Date
+		Return _ExtDate
+	End Function
+	Public Function GetExtremePrice() As Single
+		Return _Extreme
+	End Function
+	Private Sub _SetDownState()
+		_State = ZZState.Down
+	End Sub
+	Private Sub _SetUpState()
+		_State = ZZState.Up
+	End Sub
+	Public Sub PrePlot(Price As Object)
+		_TR = (Price.High - Price.Low + _
+			System.Math.Abs(Price.High - Price.Last(1)) + _
+			System.Math.Abs(Price.Last(1) - Price.Low)) / 2
+		_ATR = _ATR * (1 - _Weight) + _Weight * _TR
+		_SumWeight = _SumWeight * _TermRatio + 1
+		_Weight = 1 / _SumWeight
+	End Sub
+	Private Function _IsUp() As Boolean
+		Return _State = ZZState.Up
+	End Function
+	Private Function _IsDown() As Boolean
+		Return _State = ZZState.Down
+	End Function
+	Private Sub _UpdateDirectionToDown(Price As Object, Factor As Single)
+		_SetDownState()
+		_Extreme = Price.Low
+		_ExtDate = Price.DateValue
+			_TStop = System.Math.Max(Price.High, GetExtremePrice() + factor * _ATR)	
+		End Sub
+	Private Sub _UpdateDirectionToUp(Price As Object, Factor As Single)
+		_SetUpState()
+		_Extreme = Price.High
+		_ExtDate = Price.DateValue
+		_TStop = System.Math.Min(Price.Low, GetExtremePrice() - factor * _ATR)
+	End Sub
+	Private Sub _UpdateDirection(Price As Object, Factor As Single)
+		If _IsUp() And (Price.Low < _TStop) Then
+			_UpdateDirectionToDown(Price, Factor)
+		ElseIf _IsDown() And (Price.High > _TStop) Then
+			_UpdateDirectionToUp(Price, Factor)
+			End If
+		End Sub
+ 
+	Private Sub _UpdateExtremeHigh(Price As Object, Factor As Single)
+		If Price.High >= GetExtremePrice() Then
+			_Extreme = Price.High
+			_ExtDate = Price.DateValue
+		End If
+		_TStop = System.Math.Max(_TStop, GetExtremePrice() - factor * _ATR)
+	End Sub
+	Private Sub _UpdateExtremeLow(Price As Object, Factor As Single)
+		If Price.Low <= GetExtremePrice Then
+			_Extreme = Price.Low
+			_ExtDate = Price.DateValue
+		End If
+		_TStop = System.Math.Min(_TStop, GetExtremePrice() + Factor * _ATR)
+	End Sub
+	Private Sub _UpdateExtreme(Price As Object, Factor As Single)
+		If _IsUp() Then
+			_UpdateExtremeHigh(Price, Factor)
+		Else
+			_UpdateExtremeLow(Price, Factor)
+		End If
+	End Sub
+	Public Sub PostPlot(Price As Object, Factor As Single)
+		_UpdateDirection(Price, Factor)
+		_UpdateExtreme(Price, Factor)
+	End Sub
+	Public Function IsExtreme(Price As Object) As Boolean
+		If _state = ZZState.Up And Price.Low < _TStop Then Return True
+			If _State = ZZState.Down And Price.High > _TStop Then Return True
+		Return False
+	End Function
+End Class
+ 
+Enum ZZState
+	Up = 1
+	Down = 2
+End Enum
+
+Enum XabcdCode
+	none = 0
+	Bat     = 1
+	Gartley = 2
+	Crab    = 4
+	Butterfly = 8
+	ABCD    = 16
+End Enum
+
+
