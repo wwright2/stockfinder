@@ -1,0 +1,85 @@
+
+'|******************************************************************
+'|*** StockFinder RealCode Indicator - Version 5.0 www.worden.com 
+'|*** Copy and paste this header and code into StockFinder *********
+'|*** Indicator:Flag Breakout
+'|***  Name:  Flag Breakout
+'|*** 
+'|*** # Lag = UserInput.Integer = 0
+'|*** 
+'|*** # BrkDirection = 1 for Up, 2 for Down
+'|*** 
+'|*** If BrkDirection = 1(Up)
+'|*** 
+'|*** CountUp = consecutive bars where High(Lag) > High(Lag + 1) or Close(Lag) > Close(Lag + 1)
+'|*** 
+'|*** 	CountDn = consecutive bars where High(Lag + 1) <= High(Lag + 2) or Close(Lag + 1) <= Close(Lag + 2)
+'|*** 
+'|*** 	If CountUp = 0 or Countdn < 3 Then Plot 100+CountUp.CountDn {add 100 to CountUp}
+'|*** 
+'|*** Else Plot = CountUp.CountDn
+'|*** 
+'|*** 	If BrkDirection = 2(Down)
+'|*** 
+'|***  CountDn = consecutive bars where Low(Lag) < High(Lag + 1) or Close(Lag) < Close(Lag + 1)
+'|*** 
+'|*** 		CountUp = consecutive bars where Low(Lag + 1) >= Low(Lag + 2) or Close(Lag + 1) >= Close(Lag + 2)
+'|*** 
+'|*** 		If CountDn = 0 or Countup < 3 Then Plot -100+CountDn.CountUp {subtract 100 from CountDn}
+'|*** 
+'|*** 	Else Plot = -CountDn.CountUp 
+'|******************************************************************
+'# Lag = UserInput.Integer = 0
+'# BrkDirection = UserInput.Integer = 1
+Static CountUp As Integer
+Static CountDn As Integer
+
+
+' Initialize
+If isFirstBar Then
+	CountUp = 0
+	CountDn = 0
+	Plot = Single.NaN
+Else If CurrentIndex >= Lag + 2 Then
+	' Compute breakout.
+	
+	If BrkDirection = 1 '(Up) Then
+		If (Price.Close(Lag) > Price.High(Lag + 1) OrElse _
+			Price.Close(Lag) > Price.High(Lag + 2) ) Then
+			CountUp += 1
+		Else
+			CountUp = 0
+		End If
+		If Price.High(Lag + 1) <= Price.High(Lag + 2) OrElse _
+			Price.Close(Lag + 1) <= Price.Close(Lag + 2) Then
+			CountDn += 1
+		Else
+			CountDn = 0
+		End If
+		If CountUp = 0 OrElse Countdn < 3 Then
+			Plot = CountUp - CountDn / 100 '{add 100 To CountUp}
+		Else
+			Plot = 100 * System.Math.Round(Volume(Lag) / Volume(Lag + 1)) + CountDn / 100
+		End If
+	Else If BrkDirection = 2 '(Down) Then
+		If (Price.Close(Lag) < Price.Low(Lag + 1) OrElse _
+			Price.Close(Lag) < Price.Low(Lag + 1)) Then
+			CountDn += 1
+		Else
+			CountDn = 0
+		End If
+		If Price.Low(Lag + 1) >= Price.Low(Lag + 2) OrElse _
+			Price.Close(Lag + 1) >= Price.Close(Lag + 2) Then
+			CountUp += 1
+		Else
+			CountUp = 0
+		End If
+		If CountDn = 0 OrElse CountUp < 3 Then
+			Plot = CountDn - CountUp / 100 '{subtract 100 from CountDn}
+		Else
+			Plot = -100 * System.Math.Round(Volume(Lag) / Volume(Lag + 1)) - CountUp / 100
+		End If
+	End If
+Else
+	Plot = Single.NaN
+End If
