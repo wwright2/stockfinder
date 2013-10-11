@@ -1,0 +1,28 @@
+ '#cumulative
+'# ABCDdown = chart.AB=CD-down
+
+ Static Av As Single
+Static Bv As Single
+Static ABCDBarCount As Integer
+If isFirstBar Then
+ Av = Single.NaN
+ Bv = Single.NaN
+ ABCDBarCount = 0
+End If
+If currentindex > price.count - 15 Then
+ If Price.DateValue = ABCDdown.DateValue Then
+  ABCDBarCount += 1
+  If ABCDBarCount = 2 Then
+   Av = ABCDdown.Value
+   'Else If ABCDBarCount >= 6 AndAlso _
+   ' ABCDdown.Value <> ABCDdown.Value(1) Then
+   ' Bv = ABCDdown.Value
+  End If
+ End If
+ If ABCDBarCount >= 2 Then
+  If (Price.Value(1) > Av AndAlso Price.Value < Av) Then Pass
+  'OrElse (Price.Value(1) < Bv AndAlso Price.Value > Bv)
+ End If
+Else
+ SetIndexInvalid
+End If
