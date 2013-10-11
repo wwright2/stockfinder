@@ -1,0 +1,167 @@
+  Inherits RealCodeIndicator_base
+ ' Mod ; 3/2/2013
+ ' removed the level1 sequence. entry is plotted next bar after C is qualified,
+ ' and being a high surrounded by 1 lower or equal high.
+ ' added condition: Zhigh > Yhigh
+ 
+ Sub New
+  AutoLoop = False
+  '# RangePattern = UserInput.Integer = 200
+  '# NewHighPer = UserInput.Integer = 20
+  '# PullbackPercent = UserInput.Single = 38.2
+  '# EntryPercent = UserInput.Single = 23.6
+  '#RECALC_ON_ZOOM_SCROLL
+ End Sub
+ Public Overrides Function Plot() As System.Single
+  Dim Range(1) As Integer
+  'Range(1) = price.Bar.count - 1
+  Range(1) = Price.IndexForDate(ActiveChart.ZoomEndDate)
+  Range(0) = Range(1) + 1 - RangePattern
+  Dim BarA As Integer = Range(0)
+  If Range(0) >= 0 Then
+   For i As Integer = Range(0) To Range(1)
+    If Price.Bar.HighValue(i) >= Price.Bar.HighValue(BarA) Then
+     BarA = i
+    End If
+   Next
+   If BarA - Range(0) < NewHighPer AndAlso BarA > 0 Then
+    Dim Count As Integer = 0
+    For i As Integer = BarA - 1 To 0 Step -1
+     Count += 1
+     If Price.Bar.HighValue(i) >= Price.Bar.HighValue(BarA) Then
+      BarA = i
+      Count = 0
+     End If
+     If Count >= NewHighPer Then
+      Range(0) = BarA
+      Exit For
+     End If
+    Next
+   End If
+   If BarA < Range(1) - 1 Then
+    Dim ABretr As Single = Single.NaN
+    Dim BarB As Integer = BarA
+    Dim BarBqualified(1) As Integer
+    BarBqualified(0) = BarA
+    BarBqualified(1) = BarA
+    Dim BarC As Integer = BarA
+    Dim BarCQualified As Integer = BarA
+    Dim L1 As Integer
+    L1 = BarA
+   
+    For i As Integer = BarA + 1 To Range(1) - 1
+     If Price.Bar.LowValue(i) < Price.Bar.LowValue(BarB) Then
+      BarB = i
+      BarC = BarB
+      ABretr = PullbackPercent * (Price.Bar.HighValue(BarA) - Price.Bar.LowValue(BarB)) / 100
+     End If
+     If Price.Bar.highValue(i) > Price.Bar.lowValue(BarB) + ABretr AndAlso i > BarB AndAlso _
+      price.Bar.highvalue(i) > price.Bar.highvalue(BarB) Then
+      If BarC = BarB Then
+       BarC = i
+      Else If Price.Bar.HighValue(i) > Price.Bar.HighValue(BarC) Then
+       BarC = i
+      End If
+      BarBqualified(0) = BarB
+      If BarC > BarCqualified Then
+      
+       For j As Integer = i To Range(1) - 1
+        If Price.Bar.highValue(j) >= Price.Bar.highValue(j - 1) AndAlso _
+         Price.Bar.highValue(j) >= Price.Bar.highValue(j + 1) Then
+         L1 = j
+         BarCqualified = BarC
+         BarBqualified(1) = BarBqualified(0)
+         Exit For
+        End If       
+       Next
+      End If
+     End If
+    Next
+    If BarCqualified > BarBqualified(1) Then
+     AddToOutput(Price.Bar.DateValue(BarA), Price.Bar.highValue(BarA), "A")
+     AddToOutput(Price.Bar.DateValue(BarBqualified(1)), Price.Bar.lowValue(BarBqualified(1)), "B")
+     AddToOutput(Price.Bar.DateValue(BarCqualified), Price.Bar.highValue(BarCqualified), "C")
+     Dim k As Integer = L1 + 1
+     If k <= range(1) Then
+      Dim entry As Single = Price.bar.highvalue(barCQualified)
+      Dim B As Single
+      Dim retr As Single
+      Dim steptrgt As Single = EntryPercent * (Price.Bar.HighValue(BarA) - Price.Bar.LowValue(BarBqualified(1))) / 100
+      Dim AB As Single = price.Bar.highvalue(BarA) - price.Bar.lowvalue(BarBqualified(1))
+      Dim BC As Single = Price.Bar.HighValue(BarCqualified) - price.Bar.lowvalue(BarBqualified(1))
+      retr = 100 * BC / AB
+      entry = entry - steptrgt
+      B = entry - steptrgt
+      AddToOutput(Price.Bar.DateValue(k), entry, "entry")
+      k += 1
+      Do Until Price.Bar.Value(k) < entry OrElse k > Range(1)
+       AddToOutput(Price.Bar.DateValue(k), entry)
+       k += 1
+      Loop
+  
+      If Price.Bar.Value(k) < entry AndAlso k <= Range(1) Then
+       Dim PRZlow As Single
+       Dim PRZlowtxt As String
+       Dim PRZhigh As Single
+       Dim PRZhightxt As String
+       Select Case retr
+        Case <= 38.2
+         PRZlow = price.Bar.Highvalue(BarCqualified) - BC * 2.618
+         PRZlowtxt = "261.8%BC"
+         PRZhigh = price.Bar.Highvalue(BarCqualified) - BC * 2.618
+         PRZhightxt = "261.8%BC"
+        Case 38.2 To 50
+         PRZlow = price.Bar.Highvalue(BarCqualified) - BC * 2.618
+         PRZlowtxt = "261.8%BC"
+         PRZhigh = price.Bar.Highvalue(BarCqualified) - BC * 2
+         PRZhightxt = "200%BC"
+        Case 50 To 61.8
+         PRZlow = price.Bar.Highvalue(BarCqualified) - BC * 2
+         PRZlowtxt = "200%BC"
+         PRZhigh = price.Bar.Highvalue(BarCqualified) - BC * 1.618
+         PRZhightxt = "161.8%BC"
+        Case 61.8 To 70.7
+         PRZlow = price.Bar.Highvalue(BarCqualified) - BC * 1.618
+         PRZlowtxt = "161.8%BC"
+         PRZhigh = price.Bar.Highvalue(BarCqualified) - BC * 1.41
+         PRZhightxt = "141%BC"
+        Case 70.7 To 78.6
+         PRZlow = price.Bar.Highvalue(BarCqualified) - BC * 1.41
+         PRZlowtxt = "141%BC"
+         PRZhigh = price.Bar.Highvalue(BarCqualified) - BC * 1.27
+         PRZhightxt = "127%BC"
+        Case 78.6 To 88.6
+         PRZlow = price.Bar.Highvalue(BarCqualified) - BC * 1.27
+         PRZlowtxt = "127%BC"
+         PRZhigh = price.Bar.Highvalue(BarCqualified) - BC * 1.13
+         PRZhightxt = "113%BC"
+        Case 88.6 To 100
+         PRZlow = price.Bar.Highvalue(BarCqualified) - BC * 1.13
+         PRZlowtxt = "113%BC"
+         PRZhigh = price.Bar.Highvalue(BarCqualified) - BC * 1.13
+         PRZhightxt = "113%BC"
+       End Select
+  
+       AddToOutput(Price.Bar.DateValue(k), PRZhigh, PRZhightxt)
+       k += 1
+       Do Until Price.Bar.Value(k) < PRZhigh OrElse k > Range(1)
+        AddToOutput(Price.Bar.DateValue(k), PRZhigh)
+        k += 1
+       Loop
+       If Price.Bar.Value(k) < PRZhigh AndAlso k <= Range(1) Then
+        AddToOutput(Price.Bar.DateValue(k), PRZlow, PRZlowtxt)
+        k += 1
+        Do Until Price.Bar.Value(k) < PRZlow OrElse k > Range(1)
+         AddToOutput(Price.Bar.DateValue(k), PRZlow)
+         k += 1
+        Loop
+       End If
+      End If
+     End If
+    End If
+   End If
+  End If       
+  
+
+ End Function
+End Class
